@@ -1,4 +1,4 @@
-from multiprocessing.context import Process
+from multiprocessing import Process
 from confluent_kafka import Consumer
 from abc import ABC, abstractmethod, abstractproperty
 import sys
@@ -6,7 +6,6 @@ import ast
 import logging
 
 from functools import wraps
-import multiprocessing as mp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('consumer')
@@ -14,7 +13,7 @@ logger = logging.getLogger('consumer')
 def multiprocess(fn):
     @wraps(fn)
     def call(*args, **kwargs):
-        p = mp.Process(target=fn, args=args, kwargs=kwargs)
+        p = Process(target=fn, args=args, kwargs=kwargs)
         p.start()
         return p
     return call
