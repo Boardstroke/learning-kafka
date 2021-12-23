@@ -1,8 +1,26 @@
+from multiprocessing.context import Process
 from confluent_kafka import Consumer, DeserializingConsumer
 from abc import ABC, abstractmethod, abstractproperty
 import sys
 import threading
 import ast
+import logging
+
+import traceback
+from functools import wraps
+import multiprocessing as mp
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('consumer')
+
+def multiprocess(fn):
+    @wraps(fn)
+    def call(*args, **kwargs):
+        p = mp.Process(target=fn, args=args, kwargs=kwargs)
+        p.start()
+        return p
+    return call
+
 
 class BaseConsumer(ABC):
     
@@ -16,7 +34,7 @@ class BaseConsumer(ABC):
 
 
     @abstractmethod
-    def consume(self, msg):
+    def on_data(self, data):
         pass
 
     def __init__(self):
@@ -27,15 +45,11 @@ class BaseConsumer(ABC):
         }
         self.running = True
     
-    def listen(self):
-        thread = threading.Thread(target=self.run)
-        thread.start()
-
-        return thread
     
-    def run(self):
-        print("Starting consumer... {}".format(self.__class__.__name__))
-        consumer = DeserializingConsumer(self.config  )
+    @multiprocess
+    def listen(self):
+        logger.info("Starting consumer... {}".format(self.__class__.__name__))
+        consumer = DeserializingConsumer(self.config)
         try:
             consumer.subscribe([self.topic])
             while self.running:
@@ -43,15 +57,14 @@ class BaseConsumer(ABC):
                 if msg is None:
                     continue
                 if msg.error():
-                    print("Consumer error: {}".format(msg.error()))
+                    logger.error("Consumer error: {}".format(msg.error()))
                     continue
-                print('Received message: {}; Group id: {}'.format(msg.value().decode('utf-8'), self.group_id))
-                self.consume(self.parse_data(msg.value().decode('utf-8')) )
+                logger.info('Received message: {}; Group id: {}'.format(msg.value().decode('utf-8'), self.group_id))
+                self.on_data(self.parse_data(msg.value().decode('utf-8')) )
            
 
         except KeyboardInterrupt:
-            print("\n")
-            print("Exiting...")
+            logger.info("Exiting...")
             sys.exit(1)
         finally:
             consumer.close()
@@ -60,28 +73,39 @@ class BaseConsumer(ABC):
         try:
             return ast.literal_eval(data)
         except Exception as e:
-            print("Error: {}".format(e))
+            logger.error("Error: {}".format(e))
         finally: 
             return data
         
     def shutdown(self):
-        print("Shutting down consumer... {}".format(self.__class__.__name__))
+        logger.info("Shutting down consumer... {}".format(self.__class__.__name__))
         self.running = False
 
 class QuickstartEventsConsumer(BaseConsumer):
     group_id = 'multi'
     topic = 'multi'
 
-    def consume(self, msg):
-        print('Received message: {}'.format(msg))
+    def on_data(self, data):
+        print('Received message: {}'.format(data))
 
 class OtherConsumer(BaseConsumer):
     group_id = 'other-consumer'
     topic = 'multi'
 
-    def consume(self, msg):
-        print('Received message other consumer: {}'.format(msg))
+    def on_data(self, data):
+        print('Received message other consumer: {}'.format(data))
 
 
-consumer = QuickstartEventsConsumer()
-consumer.listen()
+
+def main():
+    consumer = QuickstartEventsConsumer()
+    consumer.listen()
+
+    consumer2 = OtherConsumer()
+    consumer2.listen()
+
+if __name__ == '__main__':
+    main()
+    
+
+
