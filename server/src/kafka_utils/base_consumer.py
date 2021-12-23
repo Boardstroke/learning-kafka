@@ -40,6 +40,7 @@ class BaseConsumer(ABC):
             'group.id': self.group_id,
             'auto.offset.reset': 'smallest',
         }
+        self.running = True
     
     
     @multiprocess
@@ -57,7 +58,8 @@ class BaseConsumer(ABC):
                     continue
                 logger.info('Received message: {}; Group id: {}'.format(msg.value().decode('utf-8'), self.group_id))
                 self.on_data(self.parse_data(msg.value().decode('utf-8')) )
-           
+
+            consumer.close()
 
         except KeyboardInterrupt:
             logger.info("Exiting...")
@@ -72,6 +74,9 @@ class BaseConsumer(ABC):
             logger.error("Error: {}".format(e))
         finally: 
             return data
+
+    def shutdown(self):
+        self.running = False
         
     
 
