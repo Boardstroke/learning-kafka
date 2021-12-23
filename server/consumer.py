@@ -41,7 +41,6 @@ class BaseConsumer(ABC):
             'group.id': self.group_id,
             'auto.offset.reset': 'smallest',
         }
-        self.running = True
     
     
     @multiprocess
@@ -75,35 +74,8 @@ class BaseConsumer(ABC):
         finally: 
             return data
         
-    def shutdown(self):
-        logger.info("Shutting down consumer... {}".format(self.__class__.__name__))
-        self.running = False
+    
 
-class QuickstartEventsConsumer(BaseConsumer):
-    group_id = 'multi'
-    topic = 'multi'
-
-    def on_data(self, data):
-        print('Received message: {}'.format(data))
-
-class OtherConsumer(BaseConsumer):
-    group_id = 'other-consumer'
-    topic = 'multi'
-
-    def on_data(self, data):
-        print('Received message other consumer: {}'.format(data))
-
-
-
-def main():
-    consumer = QuickstartEventsConsumer()
-    consumer.listen()
-
-    consumer2 = OtherConsumer()
-    consumer2.listen()
-
-if __name__ == '__main__':
-    main()
     
 
 
