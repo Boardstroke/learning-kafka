@@ -2,11 +2,9 @@ from multiprocessing.context import Process
 from confluent_kafka import Consumer, DeserializingConsumer
 from abc import ABC, abstractmethod, abstractproperty
 import sys
-import threading
 import ast
 import logging
 
-import traceback
 from functools import wraps
 import multiprocessing as mp
 
