@@ -1,7 +1,8 @@
-from confluent_kafka import Consumer
+from confluent_kafka import Consumer, DeserializingConsumer
 from abc import ABC, abstractmethod, abstractproperty
 import sys
 import threading
+import ast
 
 class BaseConsumer(ABC):
     
@@ -34,7 +35,7 @@ class BaseConsumer(ABC):
     
     def run(self):
         print("Starting consumer... {}".format(self.__class__.__name__))
-        consumer = Consumer(self.config)
+        consumer = DeserializingConsumer(self.config  )
         try:
             consumer.subscribe([self.topic])
             while self.running:
@@ -45,7 +46,7 @@ class BaseConsumer(ABC):
                     print("Consumer error: {}".format(msg.error()))
                     continue
                 print('Received message: {}; Group id: {}'.format(msg.value().decode('utf-8'), self.group_id))
-                self.consume(msg.value().decode('utf-8') )
+                self.consume(self.parse_data(msg.value().decode('utf-8')) )
            
 
         except KeyboardInterrupt:
@@ -54,6 +55,14 @@ class BaseConsumer(ABC):
             sys.exit(1)
         finally:
             consumer.close()
+
+    def parse_data(self, data):
+        try:
+            return ast.literal_eval(data)
+        except Exception as e:
+            print("Error: {}".format(e))
+        finally: 
+            return data
         
     def shutdown(self):
         print("Shutting down consumer... {}".format(self.__class__.__name__))
@@ -74,3 +83,5 @@ class OtherConsumer(BaseConsumer):
         print('Received message other consumer: {}'.format(msg))
 
 
+consumer = QuickstartEventsConsumer()
+consumer.listen()
