@@ -1,5 +1,5 @@
 from multiprocessing.context import Process
-from confluent_kafka import Consumer, DeserializingConsumer
+from confluent_kafka import Consumer
 from abc import ABC, abstractmethod, abstractproperty
 import sys
 import ast
@@ -47,7 +47,7 @@ class BaseConsumer(ABC):
     @multiprocess
     def listen(self):
         logger.info("Starting consumer... {}".format(self.__class__.__name__))
-        consumer = DeserializingConsumer(self.config)
+        consumer = Consumer(self.config)
         try:
             consumer.subscribe([self.topic])
             while self.running:
