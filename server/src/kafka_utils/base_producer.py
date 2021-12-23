@@ -14,7 +14,7 @@ class BaseProducer(ABC):
             'client.id': 'producer',
         }
     
-    def produce(self, data):
+    def send(self, data):
         producer = Producer(self.config)
         producer.produce(self.topic, data)
         producer.flush()
